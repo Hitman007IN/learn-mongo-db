@@ -1,0 +1,355 @@
+
+#################### Introduction #######################
+
+- NoSQL DB
+- uses a structured way to store and access data
+- data stored in MongoDB is called documents
+- documents are stored as collections
+- every document will have an unique _id field, so we can have same documnet contents but with different _id field which is valid in mongodb
+- MQL or MongoDB Query Language
+
+Database -> Collections -> Documents
+
+# Document
+- a way to organize and store data as field-value pairs
+{
+    "age": 23,
+    "name": "Sam"
+}
+
+# Collection
+- similar documents grouped together
+{
+    "age": 23,
+    "name": "Sam"
+}
+
+{
+    "age": 29,
+    "name": "John"
+}
+
+# Field
+- each value should be attached to a field
+- field is a unique identifier for a specific datapoint
+
+# Namespace
+- combination of database.collection 
+
+
+
+########################### Atlas #############################
+
+- Cloud services (database as a service)
+- MongoDB is at its core to store and retrive data
+- In Atlas user can deploy clusters that have replica sets of MongoDB instances that store data avaoiding single point failure
+
+
+# Connect MongoDB from MongoDB Shell
+`mongosh mongodb+srv://vis-mongo-cluster.rvr7fx9.mongodb.net/ships --username m001-student --password m001-mongodb-basics`
+or
+`mongosh mongodb+srv://m001-student:m001-mongodb-basics@vis-mongo-cluster.rvr7fx9.mongodb.net/ships`
+
+
+
+################ Importing, Exporting and Querying Data ###################
+
+# BSON
+- binary representation of Json document
+- MongoDB supports this due to the limitation of slow to parse json, space utilized, limited support for data types
+- Optimized for speed, space, flexibility, high performance
+- supports all data formats like json eg:- Boolean, Number, Array and additional Date and Raw Binary
+- but readable only by machine
+- MongoDB stores data in BSON internally and over the network
+- MongoDB supports natively storing and retriveing data in JSON
+
+                        `Stored in BSON but Viewed in JSON`
+
+
+# JSON vs BSON Retriveal and Storage
++------------+--------------+
+|JSON        | BSON         |
++------------+--------------+
+|mongoimport | mongorestore |
+|mongoexport | mongodump    |
++------------+--------------+
+
+# URI to Connect MongoDB Atlas Cluster
+`mongodb+srv://username:password@clusterURI.mongodb.net/database`
+
+-> To export data
+    BSON - `mongodump --uri "<Atlas Cluster URI>"`
+        -> `mongodump --uri mongodb+srv://username:password@clusterURI.mongodb.net/database`
+    JSON - `mongoexport --uri "<Atlas Cluster URI>" --collection=<collection_name> --out=<filename>.json`
+        -> `mongoexport --uri mongodb+srv://username:password@clusterURI.mongodb.net/database --collection=collection_name --out=output_file.json`
+
+-> To import data
+    BSON - `mongorestore --uri "<Atlas Cluster URI>" --drop dump`
+    -> `mongodrestore --uri mongodb+srv://username:password@clusterURI.mongodb.net/database --drop dump`
+    JSON - `mongoimport --uri "<Atlas Cluster URI>" --drop=<filename>.json --collection=collection_name`
+    -> `mongoimport --uri mongodb+srv://username:password@clusterURI.mongodb.net/database --drop=output_file.json`
+
+    Note:- if the collection name is not specified it will take the name of the file as the collection name
+
+
+# Shell
+-> `show dbs`
+-> `use sample_trainings`
+-> `show collections`
+-> Query in collection -> `db.zips.find( {"state": "NY"} )`
+by default this will return 20 result, to navigate to next page type `it` to iterate
+-> get the count of result -> `db.zips.find( {"state": "NY"} ).count()`
+-> to give nice pretty result -> `db.zips.find( {"state": "NY"} ).pretty()`
+-> to check the sample document in a collection -> db.zips.findOne()
+-> insert a document -> db.zips.insert( {
+    "_id": ObjectId("3423452wff5cnkjfdh"),
+    "name": "sam"
+} )
+-> insert multiple document place all items in an array in insert function -> db.inspections.insert([ { "test": 1 }, { "test": 2 }, { "test": 3 } ])
+the problem here is that incase there is an error in any one document the subsequent documents will also not get inserted
+say for eg:- db.inspections.insert([{ "_id": 1, "test": 1 },{ "_id": 1, "test": 2 }, { "_id": 3, "test": 3 }]), 
+here 2nd document will fail as the _id is same for 1st and end document
+This is because, documnents are inserted in the order in which its specified
+
+to overwrite it -> db.inspections.insert([{ "_id": 1, "test": 1 },{ "_id": 1, "test": 2 },{ "_id": 3, "test": 3 }],{ "ordered": false })
+this will insert 2 document 1st and 3rd and 2nd one will throw error of duplicate id
+
+-> if the collection name or db name mentioned in the query is wrong, mongodb will automatically create those and insert the document
+like for eg:- use wrong_db_name will create the db_name if it does not exists
+db.wrong_collec.insert() will create collection and insert document to it
+but Note:- the db or collection will be created only if something is inserted to it
+
+
+
+findOne, UpdateOne is applied to the first matched document
+
++------------+-----------------+
+|ONE         | MANY            |
++------------+-----------------+
+|findOne()   | find()          |
+|updateOne() | updateMany()    |
+|deleteOne() | deleteManay()   |
++------------+-----------------+
+
+# Update Operation
+-> to increment value by 10 -> db.zips.updateMany({ "city": "HUDSON" }, { "$inc": { "pop": 10 } })
+-> to set a defined value -> db.zips.updateOne({ "zip": "12534" }, { "$set": { "pop": 17630 } })
+if the field mention does not exists, mongodb will create the field like it creates namespace and db
+-> add an element to array field -> db.grades.updateOne({ "student_id": 250, "class_id": 339 },
+                    { "$push": { "scores": { "type": "extra credit",
+                                             "score": 100 }
+                                }
+                     })
+same like set if field does not exists then it will create
+
+
+# Delete Operation
+-> delete many matching document -> db.inspections.deleteMany({ "test": 1 })
+-> delete one matching document -> db.inspections.deleteOne({ "test": 3 })
+-> drop a collection -> db.inspection.drop()
+
+
+# Comparision MQL Operator
+$eq, $ne, $gt, $lt, $gte, $lte
+{ "<field>": { "$<Operator>": "<value>" } }
+
+# Logic MQL Operator
+$and, $or, $nor (returns all results that have failed both conditions), $not
+$and is default in all query
+{ "$<operator>": [ {<clause1>}, {<clause2>}, ... ] }
+
+for $not operator
+{ "$not": { <clause> } }
+
+
+# Expressive Query Operator
+- allows the use of aggregation expression withing query Language
+{ "$expr": { <expression> } }
+- $expr allows us to use variables and conditional statements
+
+eg:-
+db.trips.find({ "$expr": { "$eq": [ "$end station id", "$start station id"] }}).count()
+db.trips.find({ "$expr": { "$and": [ { "$gt": [ "$tripduration", 1200 ]}, { "$eq": [ "$end station id", "$start station id" ]} ]}}).count()
+
+
+
+
+# Array Operartor
+- $push used to add an element to an array or turns a field to array field if it was previously of a different type
+- when searching for elements in an array order does matter
+- $all operator will allow to search all documnet with all the items in the query matching, regardless of the order of items
+{ "<array_field>" : { "$all": <array> } }
+- $size will display only those documents that have the array field with 20 items
+{ "<array_field>" : { "$size": <number> } }
+
+db.listingsAndReviews.find({ "amenities": {
+                                  "$size": 20,
+                                  "$all": [ "Internet", "Wifi",  "Kitchen",
+                                           "Heating", "Family/kid friendly",
+                                           "Washer", "Dryer", "Essentials",
+                                           "Shampoo", "Hangers",
+                                           "Hair dryer", "Iron",
+                                           "Laptop friendly workspace" ]
+                                         }
+                            }).pretty()
+
+- $elemMatch - array operator that is used to match atleast one document that matches the element mentioned in the query
+{ "<field>": { "$elematch": { "<field>": "<value>" } } }
+eg:- 
+db.grades.find({ "class_id": 431 },
+               { "scores": { "$elemMatch": { "score": { "$gt": 85 } } }
+             }).pretty()
+
+
+
+# Projections
+- sometimes query will give result which does not fit the page and has lot of information that we dont require
+this is where projections come into picture
+db.<collection>.find( { <query> }, { <projection> } )
+
+eg:-
+db.listingsAndReviews.find({ "amenities":
+        { "$size": 20, "$all": [ "Internet", "Wifi",  "Kitchen", "Heating",
+                                 "Family/kid friendly", "Washer", "Dryer",
+                                 "Essentials", "Shampoo", "Hangers",
+                                 "Hair dryer", "Iron",
+                                 "Laptop friendly workspace" ] } },
+                            {"price": 1, "address": 1}).pretty()
+
+in this we mentioned along with the query we only need price and address field to be displayed
+- here 1 means include only these fields in the result
+- 0 means exclude these field and show all other fields in the result
+- cannot mix 1's and 0's in the query
+- by default in all results _id will be shown
+- the only scenario where 1's and 0's can be mixed is when u dont want the _id to be printed, then u specify { <field_name>: 1, "_id": 0 }
+eg:- 
+db.listingsAndReviews.find({ "amenities": "Wifi" },
+                           { "price": 1, "address": 1, "_id": 0 }).pretty()
+
+
+
+# Read sub object or Array
+- to read document/object or array within a document use dot symbol
+eg:-
+use sample_training
+
+db.trips.findOne({ "start station location.type": "Point" })
+
+db.companies.find({ "relationships.0.person.last_name": "Zuckerberg" },
+                  { "name": 1 }).pretty()
+
+db.companies.find({ "relationships.0.person.first_name": "Mark",
+                    "relationships.0.title": { "$regex": "CEO" } },
+                  { "name": 1 }).count()
+
+
+db.companies.find({ "relationships.0.person.first_name": "Mark",
+                    "relationships.0.title": {"$regex": "CEO" } },
+                  { "name": 1 }).pretty()
+
+db.companies.find({ "relationships":
+                      { "$elemMatch": { "is_past": true,
+                                        "person.first_name": "Mark" } } },
+                  { "name": 1 }).pretty()
+
+db.companies.find({ "relationships":
+                      { "$elemMatch": { "is_past": true,
+                                        "person.first_name": "Mark" } } },
+                  { "name": 1 }).count()
+
+
+db.inspections.find({ "address.city": { "$regex": "New York" } })
+
+db.trips.find({ "start station location.coordinates.0": { "$lt": -74 }}).count()
+
+
+
+# Aggregation Framework
+- its a series of jobs in a pipeline
+- used for grouping and calculation purpose
+- the order in the aggregate function matters as the pipeline runs in the same order executing each 
+like $group, 
+- with aggregate we can compute and reshape
+whereas with MQL we can filter and update
+
+eg:-
+db.listingsAndReviews.aggregate([
+                                  { "$match": { "amenities": "Wifi" } },
+                                  { "$project": { "price": 1,
+                                                  "address": 1,
+                                                  "_id": 0 }}]).pretty()
+
+db.listingsAndReviews.aggregate([ { "$project": { "address": 1, "_id": 0 }},
+                                  { "$group": { "_id": "$address.country" }}])
+
+db.listingsAndReviews.aggregate([
+                                  { "$project": { "address": 1, "_id": 0 }},
+                                  { "$group": { "_id": "$address.country",
+                                                "count": { "$sum": 1 } } }
+                                ])
+
+db.listingsAndReviews.aggregate( [ 
+    {"$project": { "room_type": 1, "_id": 0 }}, 
+    {"$group": {"_id": "$room_type"} } 
+    ] )
+
+
+
+# Sort and Limit Methods
+- these are cursor methods like pretty() and count()
+- cursor methods are not applied to the data stored instead on the result set
+- always use sort() first and then limit()
+by default mongodb assumes sort() as first and then limit even if you have not put the same in ur query
+
+eg:-
+db.zips.find().sort({ "pop": 1 }).limit(1) # ascending order
+db.zips.find().sort({ "pop": -1 }).limit(10) # desending order
+db.zips.find().sort({ "pop": 1, "city": -1 })
+db.trips.find({"birth year": {"$ne": null}, "birth year": {"$ne": ''}}, {"birth year": 1, "_id": 0}).sort({ "birth year": -1}).limit(10)
+
+
+# Indexes
+- is a datasturcture that optimizes query
+- 1 means ascending and -1 means desending
+
+eg:-
+db.trips.createIndex({ "birth year": 1 })
+db.trips.createIndex({ "start station id": 1, "birth year": 1 })
+
+
+# Data Modeling
+- mongodb does not enforce on how data is stored
+- data modeling is a way of organizing fields in document to support your application performance and querying capabilities
+- Rule of Thumb
+    -> data is stored in the way that it is used
+    -> data that needs to be accessed togther need to stay together for faster Retriveal
+    -> evolving application implies an evolving data model
+
+
+
+# Upsert
+- combination of update and insert
+- should only be used when needed
+db.collection.updateOne( { <query> }, { <update> }, { "upsert": true } )
+- default is upsert set to false
+- update will happen if the criteria matches
+- insert will happen if the criteria has no match
+
+eg:-
+db.iot.updateOne({ "sensor": r.sensor, "date": r.date,
+                   "valcount": { "$lt": 48 } },
+                         { "$push": { "readings": { "v": r.value, "t": r.time } },
+                        "$inc": { "valcount": 1, "total": r.value } },
+                 { "upsert": true })
+
+
+
+# Atlas
+Organization -> Projects
+Users -> Teams
+Cluster name should be unique
+Atlas offers Charts for visualization and Realm to create mobile or web app
+
+
+# Compass
+- desktop app to connect to atlas cluster
